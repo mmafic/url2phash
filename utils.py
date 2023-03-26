@@ -30,4 +30,8 @@ def phash_from_url(url):
     except BaseException as err:
         logger.error(f'Error getting {url}: {err}')
         return
-    return phash(img)
+    logger.debug('Image downloaded')
+    try:
+        return phash(img)
+    except cv2.error as err:
+        logger.error(err)

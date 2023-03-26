@@ -4,6 +4,9 @@ import sys
 from logger import logger
 from utils import phash_from_url
 
+HOST = '0.0.0.0'
+PORT = 65101
+
 def listen(s):
     while 1:
         try:
@@ -13,6 +16,10 @@ def listen(s):
                 while 1:
                     try:
                         url = conn.recv(1024).decode()
+                        if len(url) < 1:
+                            conn.send(int(0).to_bytes(1, 'big'))
+                            continue
+
                         logger.debug(f'Received url: {url}')
                         phash = phash_from_url(url)
                         if phash is None:
@@ -24,7 +31,7 @@ def listen(s):
                     except ConnectionResetError as err:
                         raise err
                     except BaseException as err:
-                        logger.error(err)
+                        logger.error(f'{type(err)}: {err}')
                         conn.send(int(1).to_bytes(1, 'big'))
                         raise err
         except (ConnectionResetError, BrokenPipeError) as err:
@@ -32,14 +39,9 @@ def listen(s):
 
 
 try:
-    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-        try:
-            os.remove("/var/url2phash.sock")
-        except OSError:
-            pass
-
-        s.bind("/var/url2phash.sock")
-        s.listen(1)
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((HOST, PORT))
+        s.listen()
         logger.info('Server started.')
         listen(s)
 except KeyboardInterrupt:
